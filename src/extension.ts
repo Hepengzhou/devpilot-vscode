@@ -6,9 +6,12 @@ import LoginController from './authentication/controller';
 import statusBar from './statusbar';
 import InlineCompletionProvider from './completion/inline/provider';
 import CodeLensProvider from './providers/CodeLensProvider';
+import globalState from './services/globalState';
+import IndexerProvider from './providers/IndexerProvider';
 
 export function activate(context: vscode.ExtensionContext) {
   logger.setProductionMode(context.extensionMode === vscode.ExtensionMode.Production);
+  globalState.initialize(context);
   LoginController.create(context);
 
   vscode.window.onDidChangeWindowState((event) => {
@@ -17,21 +20,16 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  const devpilot = new Devpilot(context);
+  new Devpilot(context);
   new WelcomeViewProvider(context);
-
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveColorTheme(() => {
-      const theme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? 'dark' : 'light';
-      devpilot.onThemeChanged(theme);
-    })
-  );
 
   statusBar.create(context);
 
   new InlineCompletionProvider(context);
   new CodeLensProvider(context);
+  new IndexerProvider(context);
 
+  // __dirname is the extensionPath
   logger.debug('Activated');
 }
 

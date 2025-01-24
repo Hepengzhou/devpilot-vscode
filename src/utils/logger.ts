@@ -13,21 +13,18 @@ export const logger = {
     console.warn('[DevPilot][WARN]', ...messages);
   },
   log(...messages: any[]) {
-    if (this.isProduction) {
-      return;
+    if (!this.isProduction) {
+      console.log('[DevPilot][LOG]', ...messages);
     }
-    console.log('[DevPilot][LOG]', ...messages);
   },
   debug(...messages: any[]) {
-    if (this.isProduction) {
-      return;
+    if (!this.isProduction) {
+      console.debug('[DevPilot][DEBUG]', ...messages);
     }
-    console.debug('[DevPilot][DEBUG]', ...messages);
   },
   verbose(...messages: any[]) {
-    if (this.isProduction) {
-      return;
+    if (!this.isProduction) {
+      console.log('[DevPilot][VERBOSE]', ...messages);
     }
-    console.log('[DevPilot][VERBOSE]', ...messages);
   },
 };

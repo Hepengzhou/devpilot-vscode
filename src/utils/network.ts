@@ -16,7 +16,7 @@ export function stopCheckingNetwork() {
 
 /**
  * to check network status. If the network is offline, it will inform the user to check the network status.
- * @param authType authraization type. NOTE: DO NOT use `LoginController.instance.getLoginInfo()` to get authType here, because it maight cause circular import.
+ * @param authType authraization type.
  * @returns
  */
 export function checkingNetwork(authType: string) {

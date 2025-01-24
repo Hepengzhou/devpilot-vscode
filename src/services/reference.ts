@@ -2,27 +2,17 @@ import Parser from 'web-tree-sitter';
 import path, { basename, extname } from 'path';
 import vscode from 'vscode';
 import fs from 'fs';
-import SyntaxService, { SupportsLanguages } from './syntax';
-import { getLanguageForMarkdown } from '@/utils/mapping';
+import SyntaxService from './syntax';
+import { getFileLanguageId, getLanguageForMarkdown } from '@/utils/mapping';
 import { getWorkspaceRoot } from '@/utils/vscode-extend';
 import { removeComments } from '@/utils';
 import { CodeReference } from '@/typing';
+import { FE_FILE_EXTS } from '@/utils/consts';
 
 const Types = ['class_declaration', 'function_declaration', 'enum_declaration', 'type_alias_declaration', 'interface_declaration'];
 const VarTypes = ['lexical_declaration', 'variable_declaration'];
 const ModuleTypes = ['import_statement', 'export_statement'];
-
-export const Ext2LangMapper: { [key: string]: string } = {
-  ts: 'typescript',
-  tsx: 'typescriptreact',
-  js: 'javascript',
-  jsx: 'javascriptreact',
-};
-
-const ValidExts = Object.keys(Ext2LangMapper)
-  .map((item) => `.${item}`)
-  .concat('.d.ts');
-
+const ValidExts = FE_FILE_EXTS.concat('.d.ts');
 const ValidIndexFiles = ValidExts.map((item) => [`index${item}`, `Index${item}`]).flat();
 
 interface ICompilerOptions {
@@ -369,11 +359,6 @@ export function findDefinitionNodes2(rootNode: Parser.SyntaxNode, identifierName
   return results;
 }
 
-function getLangId(fsPath: string) {
-  const extName = fsPath.split('.').pop()!;
-  return Ext2LangMapper[extName];
-}
-
 function isLocalImport(source: string) {
   return source.startsWith('.');
 }
@@ -432,7 +417,7 @@ async function resolveSymbolsDefinitionFromImports(imports: IImportItem[], fsPat
 
   for (const importInfo of importsFullInfos) {
     if (importInfo.fsPath && fs.existsSync(importInfo.fsPath)) {
-      const targetLangId = getLangId(importInfo.fsPath);
+      const targetLangId = getFileLanguageId(importInfo.fsPath);
       if (targetLangId) {
         try {
           let targetAstTree: Parser.Tree | null | undefined = docMap.get(importInfo.fsPath);
@@ -473,7 +458,7 @@ export async function resolveSymbolsDefinition(options: {
   abortController: AbortController;
 }) {
   const { symbols, docText, currentFilefsPath, startPosition, abortController } = options;
-  const langId = getLangId(currentFilefsPath);
+  const langId = getFileLanguageId(currentFilefsPath);
   if (!langId) return;
 
   let aborted = false;

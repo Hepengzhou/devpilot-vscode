@@ -22,6 +22,7 @@ export function messageByFunctionality(functionality: DevPilotFunctionality) {
     REFERENCE_CODE: '',
     PURE_CHAT: '',
     CODE_PREDICTION: '',
+    BRIEF_SUMMARY: '',
   }[functionality];
 }
 
@@ -34,7 +35,7 @@ export const UserContentMapperForRecall: Record<string, string> = {
 };
 
 type DevpilotMessageOptions = {
-  codeRef: CodeReference;
+  codeRefs: CodeReference[];
   functionality: DevPilotFunctionality;
   /**
    * document language
@@ -43,7 +44,6 @@ type DevpilotMessageOptions = {
   /**
    * user language
    */
-  // llmLocale: 'Chinese' | 'English';
 };
 
 // export function buildDevpilotMessages({ codeRef, language, functionality }: DevpilotMessageOptions): ChatMessage[] {
@@ -60,10 +60,10 @@ type DevpilotMessageOptions = {
 //   ];
 // }
 
-export function buildRecallMessage({ codeRef, functionality }: DevpilotMessageOptions): ChatMessage {
+export function buildRecallMessage({ codeRefs, functionality }: DevpilotMessageOptions): ChatMessage {
   return createUserMessage({
     content: UserContentMapperForRecall[functionality] || UserContentMapperForRecall.EXPLAIN_CODE,
-    codeRef: codeRef,
+    codeRefs,
     commandType: functionality,
   });
 }

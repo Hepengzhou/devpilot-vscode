@@ -2,7 +2,7 @@
   "name": "devpilot",
   "displayName": "DevPilot",
   "description": "Your AI-Infused Code Copilot",
-  "version": "1.7.3",
+  "version": "1.10.1",
   "publisher": "Zhongan",
   "icon": "assets/logo.png",
   "homepage": "https://devpilot.zhongan.com",
@@ -100,7 +100,6 @@
             "%devpilot.language.chinese%",
             "%devpilot.language.english%"
           ],
-          "default": "Chinese",
           "order": 10
         },
         "devpilot.autoCompletion": {
@@ -124,6 +123,12 @@
           ],
           "default": "inline",
           "order": 30
+        },
+        "devpilot.localRAG": {
+          "type": "boolean",
+          "description": "%devpilot.localRAG%",
+          "default": false,
+          "order": 35
         },
         "devpilot.networkChecking": {
           "type": "boolean",
@@ -211,6 +216,10 @@
         "command": "devpilot.openSetting",
         "title": "%devpilot.setting%",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "devpilot.generateIndex",
+        "title": "%devpilot.indexCurrentCodeBase%"
       }
     ],
     "submenus": [
@@ -223,7 +232,7 @@
       "editor/context": [
         {
           "submenu": "devpilot/content",
-          "group": "3_devpilot"
+          "group": "1_devpilot"
         }
       ],
       "devpilot/content": [
@@ -264,14 +273,19 @@
           "group": "navigation"
         },
         {
+          "command": "devpilot.generateIndex",
+          "when": "view === 'devpilot-chat'",
+          "group": "action@1"
+        },
+        {
           "command": "devpilot.openPersonal",
           "when": "view === 'devpilot-chat'",
-          "group": "inline@1"
+          "group": "login@1"
         },
         {
           "command": "devpilot.logout",
           "when": "view === 'devpilot-chat'",
-          "group": "inline@2"
+          "group": "login@2"
         }
       ],
       "scm/title": [
@@ -314,6 +328,7 @@
   "devDependencies": {
     "@estruyf/vscode": "^1.1.0",
     "@types/glob": "^7.2.0",
+    "@types/ini": "^4.1.1",
     "@types/lodash": "^4.17.7",
     "@types/mocha": "^9.1.1",
     "@types/node": "16.x",
@@ -348,6 +363,8 @@
   "dependencies": {
     "axios": "^1.6.2",
     "https-proxy-agent": "^7.0.2",
+    "ignore": "^6.0.2",
+    "ini": "^5.0.0",
     "lodash": "^4.17.21",
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.5.0",

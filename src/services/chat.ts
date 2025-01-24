@@ -1,24 +1,26 @@
 import { getStagedDiff } from '@/utils/git';
 import { logger } from '@/utils/logger';
-import request, { requestV2, ZAPI } from '@/utils/request';
+import { getApiBase, requestV2, ZAPI } from '@/utils/request';
 import { notifyLogin } from './login';
-import { API, PARAM_BASE64_ON } from '@/env';
+import { PARAM_BASE64_ON } from '@/env';
 import { ChatMessage, DevPilotFunctionality } from '@/typing';
 import { configuration } from '@/configuration';
-import { toBase64, wrapCodeRefInCodeblock } from '@/utils';
+import { removeUnexpectedContent, wrapCodeRefInCodeblock } from '@/utils';
 import type { IChatParam, IMessageData } from './types';
 import { encodeRequestBody } from '@/utils/encode';
+import { type AxiosRequestConfig } from 'axios';
 
 export const NO_STAGED_FILES = 'no staged files';
+export const CHAT_API_VERSION = 'V250102';
 
-export async function chat(data: Partial<IChatParam>, options: { signal?: AbortSignal }) {
+export async function chat(data: Partial<IChatParam>, options?: AxiosRequestConfig<any>) {
   let param: Partial<IChatParam> | string = {
-    version: 'V240923',
+    version: CHAT_API_VERSION,
     stream: false,
     ...data,
   };
 
-  // console.log('=====', JSON.stringify(param));
+  logger.info('chat param =>', JSON.stringify(param));
   if (PARAM_BASE64_ON) {
     param = await encodeRequestBody(param);
   }
@@ -42,7 +44,7 @@ export async function generateCommitMsg(options: { signal?: AbortSignal }) {
           commandType: DevPilotFunctionality.GenerateCommit,
           promptData: {
             diff: diffStr,
-            locale: configuration().llmLocale() === 'Chinese' ? 'zh_CN' : 'en_US',
+            locale: configuration().gLocale(),
           },
         },
       ],
@@ -59,13 +61,24 @@ export async function generateCommitMsg(options: { signal?: AbortSignal }) {
 }
 
 export async function predictV2({ message, signal }: { message: ChatMessage; signal?: AbortSignal }) {
-  const promptData = message.codeRef
-    ? {
-        selectedCode: wrapCodeRefInCodeblock(message.codeRef),
-        language: 'javascript',
-        commandTypeFor: message.commandType,
-      }
-    : undefined;
+  let promptData: IMessageData['promptData'] | undefined;
+  if (message.codeRefs?.length) {
+    promptData = {
+      commandTypeFor: message.commandType,
+      language: 'javascript',
+    };
+    // if (message.codeRefs.length === 1) {
+    //   promptData.selectedCode = wrapCodeRefInCodeblock(message.codeRefs[0]);
+    // } else {
+    promptData.refs = JSON.stringify(
+      message.codeRefs.map((item) => {
+        return {
+          selectedCode: wrapCodeRefInCodeblock(item),
+        };
+      })
+    );
+    // }
+  }
 
   const messages: IMessageData[] = [
     {
@@ -76,11 +89,34 @@ export async function predictV2({ message, signal }: { message: ChatMessage; sig
     },
   ];
 
-  return chat({ messages }, { signal })
+  return chat({ messages }, { signal, timeout: 5000 })
     .then((res) => {
-      return res.data?.choices?.[0].message?.content;
+      let content = res.data?.choices?.[0].message?.content as string;
+      return removeUnexpectedContent(content);
     })
     .catch((err) => {
       console.error(err);
     });
+}
+
+interface ApiProcessOptions {
+  isStreamMode?: boolean;
+  signal?: AbortSignal;
+}
+
+export async function flowProcess(data: any, command: 'completionPrediction', options?: ApiProcessOptions) {
+  let param: any = data;
+  if (PARAM_BASE64_ON) {
+    param = await encodeRequestBody(data);
+  }
+
+  logger.debug('flowProcess param', param);
+
+  return requestV2.post(`${getApiBase()}/v2/flow/process`, param, {
+    headers: {
+      'X-DevPilot-Params': JSON.stringify({ command, isStreamMode: options?.isStreamMode }),
+    },
+    signal: options?.signal,
+    responseType: options?.isStreamMode ? 'stream' : undefined,
+  });
 }

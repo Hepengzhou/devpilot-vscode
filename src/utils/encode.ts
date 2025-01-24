@@ -5,6 +5,6 @@ const gzip = promisify(zlib.gzip);
 
 export async function encodeRequestBody(body: object): Promise<string> {
   const jsonString = JSON.stringify(body);
-  const compressed = await gzip(Buffer.from(jsonString, 'utf-8'));
+  const compressed = await gzip(jsonString);
   return compressed.toString('base64');
 }
