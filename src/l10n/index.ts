@@ -3,7 +3,7 @@ import vscode from 'vscode';
 // vscode 自带的l10n处理长文本比较麻烦，这里我们自己实现一个简单的l10n
 // 只支持 {var name} 插值，不支持索引插值
 
-const langs: Record<string, Record<string, string>> = {
+const langs = {
   en: {
     'login.in': 'Login',
     'login.out': 'Logout',
@@ -37,6 +37,11 @@ const langs: Record<string, Record<string, string>> = {
     'user.wechat': 'Wechat',
     'network.offline': 'Network is not available, Please check your network connection',
     'network.setting': 'Check Setting',
+    generating: 'generating...',
+    initializing: 'initializing...',
+    indexDone: 'Codebase [{projectName}] indexing completed',
+    indexCurrentCodeBase: 'Index current codebase',
+    'decoration.shortcuts.inline': 'trigger completion',
   },
   'zh-cn': {
     'login.in': '登录',
@@ -71,13 +76,18 @@ const langs: Record<string, Record<string, string>> = {
     'user.wechat': '微信用户',
     'network.offline': '网络连接超时，请检查网络连接',
     'network.setting': '状态检查配置',
+    generating: '正在生成...',
+    initializing: '初始化...',
+    indexDone: '仓库【{projectName}】索引完成',
+    indexCurrentCodeBase: '索引当前仓库',
+    'decoration.shortcuts.inline': '触发补全',
   },
 };
 
-const lang = langs[vscode.env.language] || langs.en;
+const lang = langs[vscode.env.language as 'en' | 'zh-cn'] || langs.en;
 
-export default {
-  t: (key: string, data?: Record<string, string>) => {
+const l10n = {
+  t: (key: keyof typeof langs.en, data?: Record<string, string>) => {
     let text = lang[key] || key;
     if (data) {
       Object.keys(data).forEach((k) => {
@@ -87,3 +97,5 @@ export default {
     return text;
   },
 };
+
+export default l10n;

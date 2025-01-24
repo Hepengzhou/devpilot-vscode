@@ -6,6 +6,7 @@ import eventsProvider from '@/providers/EventsProvider';
 import l10n from '@/l10n';
 import { checkingNetwork, stopCheckingNetwork } from '@/utils/network';
 import { AUTH_ON } from '@/env';
+import globalState from '@/services/globalState';
 
 export default class LoginController extends Disposable {
   static instance: LoginController;
@@ -33,7 +34,7 @@ export default class LoginController extends Disposable {
     this.context.subscriptions.push(vscode.commands.registerCommand('devpilot.login', this.login));
     this.context.subscriptions.push(vscode.commands.registerCommand('devpilot.logout', this.logout));
     this.updateLoginStatus({ inform: true });
-    logger.info('[Login] Login controller initialized!');
+    logger.info('Login controller initialized!');
   }
 
   login = () => {
@@ -44,22 +45,18 @@ export default class LoginController extends Disposable {
       logger.info('[Login]', 'Login success =>', e);
       const { loginType, userInfo } = e;
       const authType = { gzh: 'wx', za: 'za', zati: 'za_ti' }[loginType];
-      this.context.globalState.update('LOGIN_TYPE', loginType);
-      this.context.globalState.update('AUTH_TYPE', authType);
-      this.context.globalState.update('USER_ID', userInfo.username || userInfo.openid);
-      this.context.globalState.update('TOKEN', userInfo.token);
-      this.context.globalState.update('USER_NAME', userInfo.username || userInfo.nickname);
-      this.context.globalState.update('USER_INFO', JSON.stringify(userInfo));
-      this.context.globalState.setKeysForSync(this.context.globalState.keys());
+      globalState.set('LOGIN_TYPE', loginType);
+      globalState.set('AUTH_TYPE', authType);
+      globalState.set('USER_ID', userInfo.username || userInfo.openid);
+      globalState.set('TOKEN', userInfo.token);
+      globalState.set('USER_NAME', userInfo.username || userInfo.nickname);
       this.updateLoginStatus({ inform: true });
       eventsProvider.onLogin.fire(1);
     });
   };
 
   logout = () => {
-    this.context.globalState.keys().forEach((key) => {
-      this.context.globalState.update(key, null);
-    });
+    globalState.clearAll();
     vscode.commands.executeCommand('setContext', 'devpilot.login', 0);
     eventsProvider.onLogin.fire(0);
     stopCheckingNetwork();
@@ -76,7 +73,7 @@ export default class LoginController extends Disposable {
   }
 
   updateLoginStatus({ inform }: { inform?: boolean }) {
-    const { token, authType } = this.getLoginInfo();
+    const { token, authType } = globalState.loginInfo;
     if (token || !AUTH_ON) {
       vscode.commands.executeCommand('setContext', 'devpilot.login', 1);
       checkingNetwork(authType!);
@@ -93,16 +90,5 @@ export default class LoginController extends Disposable {
         }, 5000);
       }
     }
-  }
-
-  getLoginInfo() {
-    const userId = this.context.globalState.get<string>('USER_ID');
-    const token = this.context.globalState.get<string>('TOKEN');
-    const authType = this.context.globalState.get<string>('AUTH_TYPE');
-    return {
-      authType,
-      userId,
-      token,
-    };
   }
 }

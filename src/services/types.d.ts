@@ -5,9 +5,11 @@ export interface IMessageData {
   commandType?: DevPilotFunctionality;
   promptData?: {
     selectedCode?: string;
+    refs?: string;
     answerLanguage?: string;
     language?: string;
     relatedContext?: string;
+    additionalRelatedContext?: string;
     commandTypeFor?: DevPilotFunctionality;
     diff?: string;
     locale?: string;

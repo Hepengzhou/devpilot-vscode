@@ -1,4 +1,4 @@
-import { logger } from '@/utils/logger';
+import { logger } from '../utils/logger';
 import path from 'path';
 import Parser from 'web-tree-sitter';
 

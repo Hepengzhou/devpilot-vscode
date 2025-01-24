@@ -1,6 +1,6 @@
 import axios from 'axios';
 import vscode from 'vscode';
-import LoginController from '@/authentication/controller';
+import globalState from '@/services/globalState';
 import { logger } from './logger';
 import { PUBLIC_API, API, AUTH_ON } from '@/env';
 import { configuration } from '@/configuration';
@@ -13,8 +13,11 @@ function transformRequest(data: any, headers: axios.AxiosRequestConfig['headers'
   return JSON.stringify(data);
 }
 
+/**
+ * @deprecated use getApiBase instead
+ */
 export const ZAPI = (type: 'chat' | 'chatV2' | 'completion' | 'tracking' | 'rag', api: string = '') => {
-  const { authType } = LoginController.instance.getLoginInfo();
+  const { authType } = globalState.loginInfo;
   if (type === 'chatV2') {
     if (authType === 'wx') {
       return PUBLIC_API + '/aigc/v2/chat/completions';
@@ -42,9 +45,17 @@ export const ZAPI = (type: 'chat' | 'chatV2' | 'completion' | 'tracking' | 'rag'
   }
 };
 
-export default function request(options?: { timeout: number; repo?: string }) {
+export function getApiBase() {
+  const { authType } = globalState.loginInfo;
+  const apiBase = authType === 'wx' ? PUBLIC_API + '/aigc/devpilot' : API + '/devpilot';
+  return apiBase;
+}
+
+/**
+ * @deprecated
+ */
+export default function request(options?: { timeout: number }) {
   const timeout = options?.timeout ?? 0;
-  const repo = options?.repo ?? '';
   const req = axios.create({ timeout, transformRequest });
   req.defaults.headers['Content-Type'] = 'application/json; charset=utf-8';
 
@@ -58,7 +69,7 @@ export default function request(options?: { timeout: number; repo?: string }) {
   });
   req.interceptors.request.use((config) => {
     if (AUTH_ON) {
-      const { userId, token, authType } = LoginController.instance.getLoginInfo();
+      const { userId, token, authType } = globalState.loginInfo;
       const pluginVersion = getCurrentPluginVersion();
       const userAgent = `vscode-${vscode.version}|${pluginVersion}|${token}|${userId}`;
 
@@ -69,11 +80,7 @@ export default function request(options?: { timeout: number; repo?: string }) {
       config.headers.set('Auth-Type', authType);
     }
 
-    if (repo) {
-      config.headers.set('Embedded-Repos-V2', repo);
-    }
-
-    const lang = configuration().llmLocale() === 'Chinese' ? 'zh-CN' : 'en-US';
+    const lang = configuration().gLocale();
     config.headers.set('X-B3-Language', lang);
 
     return config;
@@ -89,7 +96,7 @@ requestV2.defaults.headers['Content-Type'] = 'application/json; charset=utf-8';
 
 requestV2.interceptors.request.use((request) => {
   if (!/^http/.test(request.url!)) {
-    const { authType } = LoginController.instance.getLoginInfo();
+    const { authType } = globalState.loginInfo;
     request.url = (authType === 'wx' ? PUBLIC_API : API) + request.url;
   }
   logger.debug('Starting Request', request.url, request.data, request.params);
@@ -103,7 +110,7 @@ requestV2.interceptors.response.use((response) => {
 
 requestV2.interceptors.request.use((config) => {
   if (AUTH_ON) {
-    const { userId, token, authType } = LoginController.instance.getLoginInfo();
+    const { userId, token, authType } = globalState.loginInfo;
     const pluginVersion = getCurrentPluginVersion();
     const userAgent = `vscode-${vscode.version}|${pluginVersion}|${token}|${userId}`;
 
@@ -118,7 +125,7 @@ requestV2.interceptors.request.use((config) => {
     config.headers.set('Embedded-Repos-V2', config.repo);
   }
 
-  const lang = configuration().llmLocale() === 'Chinese' ? 'zh-CN' : 'en-US';
+  const lang = configuration().gLocale();
   config.headers.set('X-B3-Language', lang);
 
   return config;

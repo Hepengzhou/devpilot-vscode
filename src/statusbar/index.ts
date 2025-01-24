@@ -1,4 +1,4 @@
-import vscode, { ExtensionContext, QuickPickItem, ThemeIcon } from 'vscode';
+import vscode, { ExtensionContext, QuickPickItem, ThemeColor, ThemeIcon } from 'vscode';
 import l10n from '../l10n';
 import eventsProvider from '@/providers/EventsProvider';
 
@@ -12,8 +12,9 @@ const getDisplayUserName = (context: ExtensionContext) => {
 };
 
 function getStatusBarActions(context: ExtensionContext) {
-  const token = context.globalState.get('TOKEN');
   const config = vscode.workspace.getConfiguration('devpilot');
+  // const userId = context.globalState.get<string>('USER_ID');
+  const token = context.globalState.get<string>('TOKEN');
   const autoComplete = config.get('autoCompletion') as boolean;
   const methodQuickOp = config.get('methodShortcut') !== 'hidden';
 
@@ -63,6 +64,16 @@ function getStatusBarActions(context: ExtensionContext) {
     },
   ];
 
+  // if (userId && ['zhuyongyu001', 'zhaopengjun'].includes(userId)) {
+  //   actions.push({
+  //     label: '生成索引',
+  //     iconPath: new ThemeIcon('remote-explorer-documentation'),
+  //     fn() {
+  //       vscode.commands.executeCommand('devpilot.generateIndex');
+  //     },
+  //   });
+  // }
+
   return actions;
 }
 
@@ -107,9 +118,11 @@ const statusBar = {
     if (type === 'offline') {
       barItem.text = '$(devpilot-logo-offline)';
       barItem.tooltip = l10n.t('login.fail');
+      barItem.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
     } else if (type === 'online') {
       barItem.text = '$(devpilot-logo)';
       barItem.tooltip = 'DevPilot';
+      barItem.backgroundColor = undefined;
     } else if (type === 'loading') {
       barItem.tooltip = l10n.t('fetch.completion');
       barItem.text = '$(loading~spin)';

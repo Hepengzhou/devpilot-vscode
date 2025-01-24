@@ -32,3 +32,8 @@ export const TELEMETRY_ON: boolean = true;
  * whether to base64-encode params of request
  */
 export const PARAM_BASE64_ON: boolean = true;
+
+/**
+ * if to use local agent. pls set false if you do not has then codebase of the agent
+ */
+export const LOCAL_AGENT_ON: boolean = false;

@@ -16,12 +16,10 @@
   "devpilot.methodShortcut.inline": "平铺",
   "devpilot.methodShortcut.dropdown": "分组下拉",
   "devpilot.networkChecking.description": "开启网络状态检查",
-  "devpilot.provider.description": "模型供应商（ZA默认提供了自己的模型，可以免费使用)",
-  "devpilot.provider.proxy": "如有必要，可以在此设置你的代理，在模型供应商为ZA的情况下这个设置无效",
-  "devpilot.provider.openaiAPIKey": "如果使用OpenAI作为模型供应商，请配置你自己的API Key",
-  "devpilot.provider.model": "你的模型选择（gpt-3.5-turbo,gpt-4,gpt-4o,etc.）",
   "devpilot.logout": "退出登录",
   "devpilot.feedback": "反馈",
   "devpilot.openSetting": "设置",
-  "devpilot.openPersonal": "个人面板"
+  "devpilot.openPersonal": "个人面板",
+  "devpilot.localRAG": "开启DevPilot索引（当前代码库的内容将被用于DevPilot构建索引，此信息我们仅用于提升当前代码库生成代码的质量，不会用于其他用途，且所有数据仅存储于本地）",
+  "devpilot.indexCurrentCodeBase": "索引当前仓库"
 }

@@ -19,12 +19,10 @@
   "devpilot.methodShortcut.group": "Group",
   "devpilot.networkChecking.description": "Enable network checking",
   "devpilot.proxy.description": "The proxy to use for DevPilot",
-  "devpilot.provider.description": "The provider to use for DevPilot, ZA is the default provider",
-  "devpilot.provider.proxy": "Use a proxy for the provider if necessary",
-  "devpilot.provider.openaiAPIKey": "Provide your OpenAI API Key if you are using OpenAI as the provider",
-  "devpilot.provider.model": "The model you want to use (gpt-3.5-turbo, gpt-4, gpt-4o, etc.)",
   "devpilot.logout": "Logout",
   "devpilot.feedback": "Feedback",
   "devpilot.setting": "Setting",
-  "devpilot.personalCenter": "User profile"
+  "devpilot.personalCenter": "User profile",
+  "devpilot.localRAG": "Enable DevPilot Indexing（The content of the current codebase will be used for DevPilot to build an index. This information will only be used to improve the quality of code generation for the current codebase and will not be used for any other purposes. All data will be stored locally only）",
+  "devpilot.indexCurrentCodeBase": "Index current codebase"
 }

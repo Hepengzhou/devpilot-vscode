@@ -33,7 +33,6 @@ screenshot
 *.vsix
 
 build
-
 assets/iconfont/font_*
-
 _experimentations_
+resources/devpilot-agent.js

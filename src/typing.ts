@@ -42,6 +42,7 @@ export enum DevPilotFunctionality {
   ReferenceCode = 'REFERENCE_CODE',
   PureChat = 'PURE_CHAT',
   CodePrediction = 'CODE_PREDICTION',
+  BriefSummary = 'BRIEF_SUMMARY',
 }
 
 export enum PluginCommand {
@@ -69,9 +70,12 @@ export enum PluginCommand {
   CheckCodePerformance = 'CheckCodePerformance',
   // PresentCodeEmbeddedState = 'PresentCodeEmbeddedState',
   ReferenceCode = 'ReferenceCode',
+  ShowMessage = 'ShowMessage',
 }
 
 export type ProviderType = 'OpenAI' | 'Azure' | 'ZA';
+
+export type Language = 'Chinese' | 'English';
 
 export enum Locale {
   Chinese = 'cn',
@@ -80,7 +84,14 @@ export enum Locale {
 
 export interface CodeReference {
   languageId: string;
+  /**
+   * absolute path(fs path)
+   */
   fileUrl: string;
+  /**
+   * relative path
+   */
+  filePath?: string;
   fileName: string;
   sourceCode: string;
   /**
@@ -95,20 +106,23 @@ export interface CodeReference {
   selectedStartColumn: number;
   selectedEndLine: number;
   selectedEndColumn: number;
+  startOffset?: number;
+  endOffset?: number;
   /**
    * if to show in chat window
    */
   // visible: boolean;
 }
 
-export type MessageRole = 'user' | 'assistant' | 'system' | 'divider' | 'error';
+export type MessageRole = 'user' | 'assistant' | 'system' | 'divider';
 
 export interface ChatMessage {
   id: string;
   /**
-   * 用户输入或者命令
+   * user input or command
    */
   content: string;
+  mode?: 'with-ctrl';
   status: 'ok' | 'error';
   role: MessageRole;
   username: string;
@@ -119,7 +133,7 @@ export interface ChatMessage {
    * 是否流式回答
    */
   streaming: boolean;
-  codeRef?: CodeReference;
+  codeRefs?: CodeReference[];
   recall?: IRecall;
 }
 

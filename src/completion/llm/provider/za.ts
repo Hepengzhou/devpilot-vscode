@@ -1,19 +1,30 @@
 import { logger } from '@/utils/logger';
 import { readJSONStream, StreamHandler } from '@/utils/stream';
-import { ChatMessage, LLMChatHandler, LLMProvider, ProviderType } from '../../../typing';
+import { ChatMessage, CodeReference, LLMChatHandler, LLMProvider, MessageRole, ProviderType } from '../../../typing';
 import request, { ZAPI } from '@/utils/request';
 import { configuration } from '@/configuration';
 import { PARAM_BASE64_ON } from '@/env';
 import { IChatParam, IMessageData } from '@/services/types';
 import { encodeRequestBody } from '@/utils/encode';
 import { wrapCodeRefInCodeblock } from '@/utils';
+import { CHAT_API_VERSION } from '@/services/chat';
 
-type OpenAIRole = 'user' | 'assistant' | 'system';
+function removeDuplications(codeRefs?: CodeReference[]) {
+  if (codeRefs?.length) {
+    return codeRefs.filter((item) => codeRefs.find((item2) => !item2.sourceCode.includes(item.sourceCode)));
+  }
+  return codeRefs;
+}
 
-function convertToOpenAIMessages(messages: ChatMessage[]): IMessageData[] {
-  const validRoles: OpenAIRole[] = ['user', 'assistant'];
+function convertToMessagesData(messages: ChatMessage[]): IMessageData[] {
+  const validRoles: MessageRole[] = ['user', 'assistant'];
   const clonedMessages = messages
-    .filter((msg) => validRoles.includes(msg.role as OpenAIRole))
+    .filter((msg) => {
+      // if (msg.role === 'assistant') {
+      //   return msg.content; // 这个地方不能按照content过滤，因为带recall的就为空
+      // }
+      return validRoles.includes(msg.role);
+    })
     .map((item) => {
       return { ...item };
     });
@@ -27,68 +38,83 @@ function convertToOpenAIMessages(messages: ChatMessage[]): IMessageData[] {
     }
   });
 
-  const answerLanguage = configuration().llmLocale() === 'Chinese' ? 'zh_CN' : 'en_US';
-  return clonedMessages.map((msg) => {
-    const { codeRef, recall } = msg;
-    const localRefs = recall?.localRefs;
-    const promptData: IMessageData['promptData'] | undefined =
-      msg.role === 'user'
-        ? {
-            selectedCode: wrapCodeRefInCodeblock(codeRef),
-            answerLanguage,
-            language: 'javascript',
-            relatedContext: localRefs
-              ?.map((ref, index) => {
-                const codeBlock = wrapCodeRefInCodeblock(ref);
-                const indexStr = `${index + 1}. `;
-                if (ref.packageName) {
-                  return `\n\n${indexStr}module '${ref.packageName}'\n${codeBlock}`;
-                }
-                return `\n\n${indexStr}\n${codeBlock}`;
-              })
-              .join(''),
-          }
-        : undefined;
+  const answerLanguage = configuration().gLocale();
+  return clonedMessages
+    .filter((item) => item.content)
+    .map((msg) => {
+      const { codeRefs, recall } = msg;
+      const localRefs = recall?.localRefs;
+      const remoteRefs = recall?.remoteRefs;
+      let promptData: IMessageData['promptData'] | undefined;
+      if (msg.role === 'user') {
+        promptData = {
+          // selectedCode: wrapCodeRefInCodeblock(codeRef),
+          answerLanguage,
+          language: 'javascript',
+          relatedContext: removeDuplications(localRefs)
+            ?.map((ref, index) => {
+              const codeBlock = wrapCodeRefInCodeblock(ref);
+              const indexStr = `${index + 1}. `;
+              if (ref.packageName) {
+                return `\n\n${indexStr}local module '${ref.packageName}'\n${codeBlock}`;
+              }
+              return `\n\n${indexStr}\n${codeBlock}`;
+            })
+            .join(''),
+          additionalRelatedContext: remoteRefs
+            ?.map((ref, index) => {
+              const codeBlock = wrapCodeRefInCodeblock(ref);
+              const indexStr = `${index + 1}. `;
+              return `\n\n${indexStr}from codebase: ${ref.fileUrl}\n${codeBlock}`;
+            })
+            .join(''),
+        };
+        if (codeRefs?.length) {
+          promptData.refs = JSON.stringify(
+            codeRefs.map((item) => {
+              return { selectedCode: wrapCodeRefInCodeblock(item), filePath: item.filePath };
+            })
+          );
+        }
+      }
 
-    logger.info('relatedContext', promptData?.relatedContext);
-
-    return {
-      commandType: msg.commandType,
-      content: msg.content,
-      role: msg.role,
-      promptData,
-    };
-  });
+      return {
+        commandType: msg.commandType,
+        content: msg.content,
+        role: msg.role,
+        promptData,
+      };
+    });
 }
 
 export default class ZAProvider implements LLMProvider {
   public name: ProviderType = 'ZA';
   // private stream: boolean = true;
 
-  async chat(messages: ChatMessage[], extraOptions?: { repo?: string; signal?: AbortSignal }): Promise<LLMChatHandler> {
+  async chat(messages: ChatMessage[], extraOptions?: { signal?: AbortSignal }): Promise<LLMChatHandler> {
     try {
-      const llmMsgs = convertToOpenAIMessages(messages);
-      const repo = extraOptions?.repo;
-      const apiEndpoint = repo ? ZAPI('rag') : ZAPI('chatV2');
-      logger.debug('llmMsgs', llmMsgs, 'extraOptions', extraOptions, 'repo', repo, 'apiEndpoint', apiEndpoint);
-      const req = request({ timeout: 0, repo });
+      const llmMsgs = convertToMessagesData(messages);
+      const apiEndpoint = ZAPI('chatV2');
+      logger.debug('llmMsgs', llmMsgs, 'extraOptions', extraOptions, 'apiEndpoint', apiEndpoint);
+      const req = request({ timeout: 0 });
 
       let param: IChatParam | string = {
-        version: 'V240923',
+        version: CHAT_API_VERSION,
         stream: true,
         messages: llmMsgs,
       };
 
+      logger.debug('chat param raw', JSON.stringify(param));
+
       if (PARAM_BASE64_ON) {
         param = await encodeRequestBody(param);
+        // logger.debug('chat param', JSON.stringify(param));
       }
-
-      logger.debug('chat param', JSON.stringify(param));
 
       const response = await req
         .post(apiEndpoint, param, {
           responseType: 'stream',
-          timeout: 120000,
+          timeout: 60 * 1000,
           signal: extraOptions?.signal,
         })
         .catch((err) => {
@@ -126,15 +152,16 @@ export default class ZAProvider implements LLMProvider {
             const text = data.choices[0]?.delta.content ?? '';
             textCollected += text;
             onTextCallback?.(textCollected, { id: data.id });
-          } else if (data.rag) {
-            let text = `\n\n<div class="rag-files" data-repo="${repo}">`;
-            data.rag.files.forEach(({ file }: any) => {
-              text += `<div>${file}</div>`;
-            });
-            text += `</div>\n\n`;
-            textCollected += text;
-            onTextCallback?.(textCollected, { id: data.id });
           }
+          // else if (data.rag) {
+          //   let text = `\n\n<div class="rag-files" data-repo="${repo}">`;
+          //   data.rag.files.forEach(({ file }: any) => {
+          //     text += `<div>${file}</div>`;
+          //   });
+          //   text += `</div>\n\n`;
+          //   textCollected += text;
+          //   onTextCallback?.(textCollected, { id: data.id });
+          // }
         },
         onInterrupted: () => {
           onInterruptedCallback?.();
