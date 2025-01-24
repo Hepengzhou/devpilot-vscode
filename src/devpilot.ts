@@ -24,6 +24,7 @@ import { md5 } from './utils/md5';
 import globalState from './services/globalState';
 import { readFileContentPartly } from './utils/file';
 import { findPredictableCodeRefs, openOfficialSite } from './services/common';
+import { LOCAL_AGENT_ON } from './env';
 
 export default class Devpilot implements vscode.WebviewViewProvider {
   private _context: vscode.ExtensionContext;
@@ -231,13 +232,14 @@ export default class Devpilot implements vscode.WebviewViewProvider {
 
     const predictableCodeRefs = findPredictableCodeRefs(codeRefs);
     const hasLocalRecall = predictableCodeRefs.length > 0;
-    const hasRemoteRecall = [DevPilotFunctionality.PureChat].includes(functionality); // recall from simple code
+    const hasRemoteRecall = LOCAL_AGENT_ON && [DevPilotFunctionality.PureChat].includes(functionality); // recall from simple code
 
     if (!hasLocalRecall && !hasRemoteRecall) {
       return false;
     }
 
-    logger.info('handleRecall', hasLocalRecall, hasRemoteRecall);
+    logger.info('hasLocalRecall', hasLocalRecall);
+    logger.info('hasRemoteRecall', hasRemoteRecall);
 
     const convo = getCurrentConversation();
     const recall: IRecall = { steps: [{ status: 'loading' }] };
@@ -261,7 +263,8 @@ export default class Devpilot implements vscode.WebviewViewProvider {
     // no dependency, go first!
     const workspaceRoot = getWorkspaceRoot();
     const lastCodeRef = codeRefs?.length ? codeRefs[codeRefs.length - 1] : undefined;
-    const hasLocalRag = workspaceRoot && this.config.localRAG();
+    const hasLocalRag = LOCAL_AGENT_ON && workspaceRoot && this.config.localRAG();
+    logger.info('hasLocalRag', hasLocalRag);
     const localRagTask = hasLocalRag
       ? getLocalRagContent(
           {
