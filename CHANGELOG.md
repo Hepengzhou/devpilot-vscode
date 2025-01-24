@@ -1,5 +1,21 @@
 # Change Log
 
+## 1.10.0 (2024/01/14)
+
+- feat: Introduce recall functionality to inline completion.
+- feat: Display a loading when inline completion triggered by keyboard shortcut.
+
+## 1.9.0 (2024/12/23)
+
+- feat: Add configration item for the user to determine if to use recall functionality.
+- feat: Support indexing current codebase.
+- feat: Support recall code snippet of current codebase.
+
+## 1.8.0 (2024/11/29)
+
+- feat: Remote sample code recall
+- feat: Support indexing sample codebase.
+
 ## 1.7.3 (2024/10/23)
 
 - fix: The issue of incomplete context recall in certain grammatical scenario.
